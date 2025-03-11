@@ -85,7 +85,7 @@ upsrt:
 
     logging:
       save_dir: './training_logs_upsrt_finetune'
-      project_name: 'UpSRT-Py3D-VAFM-nova'
+      project_name: 'UpSRT-Py3D-VAFM-delta'
       exp_name: 'upsrt_finetune'
       log_interval: 5
       save_interval: 10
@@ -146,13 +146,13 @@ unet:
 
     logging:
       save_dir: './training_logs_unet'
-      project_name: 'UpSRT-UNet-Py3D-VAFM-nova'
+      project_name: 'UpSRT-UNet-Py3D-VAFM-delta'
       exp_name: 'upsrt_unet'
       log_interval: 5
       save_interval: 10
 
 data:
-  path: '/work/mech-ai/jrrade/Protein/AF_swissprot_py3d_virtual_afm'
+  path: '/scratch/bcyr/jd23697/AF_swissprot_py3d_virtual_afm'
   fixed_views_path: '/work/mech-ai/jrrade/Protein/AF_swissprot_550k_data_old'
   image_size: [256, 256]
   num_samples: '1k' #['256', '1k', '10k', '50k', '100k' 'whole_data']
@@ -231,7 +231,7 @@ diffusion:
     logging:
       visualize_after: 1000 # 2000 # Visualize after how many iterations
       save_dir: './training_logs_diffusion_finetune'
-      project_name: 'diffusion_finetune_nova'
+      project_name: 'diffusion_finetune_delta'
       exp_name: 'diffusion_finetune'
       log_interval: 5
       save_interval: 10

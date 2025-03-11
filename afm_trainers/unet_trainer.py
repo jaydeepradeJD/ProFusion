@@ -4,14 +4,14 @@ import torch
 import pytorch_lightning as pl
 from torchvision.utils import make_grid
 
-from upsrt_afm.model.model import UpSRT
+from upsrt.model.model import UpSRT
 from dino.model.model import DINOv2KeyExtractor
 
 from accelerate import Accelerator
 
-from upsrt_afm.model.small_cnn import SmallCNN
+from upsrt.model.small_cnn import SmallCNN
 
-from upsrt_afm.model.unet import Encoder, Decoder
+from upsrt.model.unet import Encoder, Decoder
 from einops import rearrange
 import wandb
 

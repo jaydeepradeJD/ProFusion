@@ -1,5 +1,6 @@
 import os
 
+# main directory where all the data is stored
 directory = '/work/mech-ai/jrrade/Protein/AF_swissprot_py3d_virtual_afm/'
 # dirs = os.listdir(directory)
 
@@ -24,15 +25,15 @@ directory = '/work/mech-ai/jrrade/Protein/AF_swissprot_py3d_virtual_afm/'
 # 		f.write('\n')
 
 
-with open('/work/mech-ai/jrrade/Protein/ProFusion/data/data_split/train_samples.txt', 'r') as f:
+with open('./train_samples.txt', 'r') as f:
 	train_dirs = f.readlines()
 	train_dirs = [d.strip() for d in train_dirs]
 
-with open('/work/mech-ai/jrrade/Protein/ProFusion/data/data_split/val_samples.txt', 'r') as f:
+with open('./val_samples.txt', 'r') as f:
 	val_dirs = f.readlines()
 	val_dirs = [d.strip() for d in val_dirs]
 
-with open('/work/mech-ai/jrrade/Protein/ProFusion/data/data_split/test_samples.txt', 'r') as f:
+with open('./test_samples.txt', 'r') as f:
 	test_dirs = f.readlines()
 	test_dirs = [d.strip() for d in test_dirs]
 
@@ -40,17 +41,17 @@ with open('/work/mech-ai/jrrade/Protein/ProFusion/data/data_split/test_samples.t
 num_samples = {'256':256, '1k':1000, '10k':10000, '50k':50000, '100k':100000, '150k':150000}
 
 for num in num_samples:
-	with open('/work/mech-ai/jrrade/Protein/upfusion/data/data_split/train_samples_'+num+'.txt', 'w') as f:
+	with open('./train_samples_'+num+'.txt', 'w') as f:
 		for d in train_dirs[:num_samples[num]]:
-			f.write(os.path.join(directory,d))
+			f.write(d)
 			f.write('\n')
 	
-	with open('/work/mech-ai/jrrade/Protein/upfusion/data/data_split/val_samples_'+num+'.txt', 'w') as f:
+	with open('./val_samples_'+num+'.txt', 'w') as f:
 		for d in val_dirs[:num_samples[num]]:
-			f.write(os.path.join(directory,d))
+			f.write(d)
 			f.write('\n')
 	
-	with open('/work/mech-ai/jrrade/Protein/upfusion/data/data_split/test_samples_'+num+'.txt', 'w') as f:
+	with open('./test_samples_'+num+'.txt', 'w') as f:
 		for d in test_dirs[:num_samples[num]]:
-			f.write(os.path.join(directory,d))
+			f.write(d)
 			f.write('\n')
