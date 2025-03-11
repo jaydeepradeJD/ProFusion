@@ -152,7 +152,7 @@ unet:
       save_interval: 10
 
 data:
-  path: '/work/mech-ai/jrrade/Protein/upfusion/data/data_split'
+  path: '/work/mech-ai/jrrade/Protein/AF_swissprot_py3d_virtual_afm'
   fixed_views_path: '/work/mech-ai/jrrade/Protein/AF_swissprot_550k_data_old'
   image_size: [256, 256]
   num_samples: '1k' #['256', '1k', '10k', '50k', '100k' 'whole_data']
