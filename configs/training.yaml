@@ -1,0 +1,239 @@
+##################################################################################
+# DINO Parameters
+##################################################################################
+
+dino:
+
+  model:
+
+    model_key: 'dinov2_vitb14'
+    layer_name: 'blocks.8.attn.qkv'
+    num_patches_x: 16
+    num_patches_y: 16
+    out_dim: 768
+
+    ray:
+      num_freqs: 15
+      start_freq: -6
+      parameterize: 'plucker'
+
+##################################################################################
+# UpSRT Parameters
+##################################################################################
+upsrt:
+  data:
+    n_views: 3
+    n_query_views: 1
+    
+  model:
+    num_pixel_queries: 7168 #65536
+    transformer_dim: 768
+
+    # Boolean that enables or disables using variable number of input views. The number of input
+    # views is constant within a batch, but can vary across batches.
+    enable_var_views: True
+
+    # Min number of input views per instance when enable_var_views is True.
+    min_views: 1
+
+    # Max number of input views per instance when enable_var_views is True.
+    max_views: 6
+
+    ray:
+      num_freqs: 15
+      start_freq: -6
+      parameterize: 'plucker'
+      view_space: False
+
+    feature_extractor:
+      n_blocks: 3
+      num_patches_x: 16 # Set same as dino.model.num_patches_x
+      num_patches_y: 16 # Set same as dino.model.num_patches_y
+      image_feature_dim: 768  # Set same as dino.model.out_dim
+
+    ray_decoder:
+      num_decoder_layers: 4
+      transformer_dim: 768 # Set same as srt.model.transformer_dim
+      grayscale: False
+
+    scene_encoder:
+      num_encoder_layers: 8
+      transformer_dim: 768 # Set same as srt.model.transformer_dim
+
+  training:
+    use_dino: False
+    pretrained_upsrt: False
+    pretrained_feature_extractor: False
+    freeze_feature_extractor: False
+    freeze_upsrt_encoder: False
+    freeze_upsrt: False
+    weights_dir: './weights' # Path to pre-trained weights from original UpFusion model
+    fe_weights_dir: './training_logs_unet/bs128_ep_100_whole_data_1node_4gpus/epoch=10-step=8745.ckpt'
+    fe_grayscale_weights_dir: './training_logs_unet/bs128_ep_100_whole_data_1node_4gpus_grayscale/epoch=10-step=8745.ckpt'
+    batch_size: 8
+    epochs: 100
+    num_workers: 4
+    gpus: 1
+    num_nodes: 1
+    lr: 1e-4
+    weight_decay: 0.0
+    modified_mse: False
+    perceptual_loss: False
+    mixed_loss: False
+    bce_loss: False
+    use_diffusion: False
+
+    logging:
+      save_dir: './training_logs_upsrt_finetune'
+      project_name: 'UpSRT-Py3D-VAFM-nova'
+      exp_name: 'upsrt_finetune'
+      log_interval: 5
+      save_interval: 10
+
+##################################################################################
+# Masked Autoencoder Parameters
+##################################################################################
+mae:
+  data:
+  vit: 
+    image_size: 256
+    patch_size: 16
+    dim: 768
+    depth: 6
+    heads: 8
+    mlp_dim: 2048
+
+  training:
+    seed: 123
+    masking_ratio: 0.75
+    decoder_dim: 768
+    decoder_depth: 6
+    batch_size: 128
+    epochs: 100
+    num_workers: 4
+    gpus: 1
+    num_nodes: 1
+    lr: 1e-4
+    weight_decay: 0.0
+
+    logging:
+      save_dir: './training_logs_mae'
+      project_name: 'mae_finetune'
+      exp_name: 'mae_finetune'
+      log_interval: 5
+      save_interval: 10
+
+##################################################################################
+# UNET Parameters
+##################################################################################
+unet:
+  data:
+  model:
+    in_channels: 3
+    out_channels: 3
+    embd_dim: 768
+    group_norm: 8 
+  training:
+    seed: 123
+    use_norm: True
+    batch_size: 128
+    epochs: 100
+    num_workers: 4
+    gpus: 1
+    num_nodes: 1
+    lr: 1e-4
+    weight_decay: 0.0
+
+    logging:
+      save_dir: './training_logs_unet'
+      project_name: 'UpSRT-UNet-Py3D-VAFM-nova'
+      exp_name: 'upsrt_unet'
+      log_interval: 5
+      save_interval: 10
+
+data:
+  path: '/work/mech-ai/jrrade/Protein/upfusion/data/data_split'
+  fixed_views_path: '/work/mech-ai/jrrade/Protein/AF_swissprot_550k_data_old'
+  image_size: [256, 256]
+  num_samples: '1k' #['256', '1k', '10k', '50k', '100k' 'whole_data']
+  grayscale: False
+  grayscale_3ch: False
+  n_views: 3
+  fixed_views: False
+  return_rays: False
+  identity_K: False
+##################################################################################
+# Diffusion Parameters
+##################################################################################
+
+diffusion:
+
+  model:
+
+    # One among "DF", "SLT" or "DF+SLT"
+    cond_type: "DF+SLT"
+
+    # Config used to build the control net model
+    control_net_model_config_path: ./control_net/models/cldm_v15_dfslt.yaml
+
+    # Color to be used in the control net prompt 
+    control_net_prompt_color: "white"
+
+    # One among "default" or "class-specific"
+    control_net_prompt_type: "default"
+
+    # Boolean that controls the sd_locked attribute
+    control_net_sd_locked: False
+
+    # One among "pred_rgb" or "pre_rgb_mlp_features"
+    srt_decoder_return_type: "pre_rgb_mlp_features"
+
+    # Can take null or a list of 2 numbers
+    query_feature_size: [32, 32]
+
+    # CFG strategy to be used
+    cfg_type: "F1"
+
+    # Guidance scale(s) for the specified cfg_type
+    unconditional_guidance_scale: 9.0
+
+  training:
+    load_path: "not_used"
+    runs_dir: "not_used"
+    exp_tag: "not_used"
+    epochs: 100
+    batch_size: 4
+    num_workers: 4
+    srt_load_path: "not_used"
+    pretrained_upsrt_ckpt_path: '/work/mech-ai-scratch/jrrade/Protein/upfusion-latest/training_logs_upsrt_finetune/bs4_ep_100_whole_data_upsrt_train_from_scratch_py3d_camera_with_gpvol_rays_identity_query_K_grayscale_3ch_4N4G/epoch=8-step=57204.ckpt' #'./training_logs_upsrt_finetune/bs8_ep_100_data100k_upsrt_train_from_scratch_gpvol_rays/epoch=7-step=12496.ckpt'
+    save_only_pred_rgb: False
+    load_optim: True
+    break_train_at: 10000000 # Global step to stop training at
+    num_nodes: 1  
+    gpus: 1
+    lr: 1e-5
+    weight_decay: 0.0
+    use_pretrained_diffusion: False
+    pretrained_sd15_ckpt_path: './weights/control_sd15_ini.ckpt'
+    use_pretrained_upfusion: False
+    pretrained_upfusion_ckpt_path: './weights/upfusion2d.pt'
+
+    # If True, conditions are dropped out according to a pre-set strategy.
+    enable_condition_dropout: True
+
+    # Only used if enable_condition_dropout is True. Please refer to the code for the exact strategy through which
+    # condition_dropout_frac is used.
+    condition_dropout_frac: 0.05
+
+    optim:
+      lr: 1e-5 # 1e-5
+
+    logging:
+      visualize_after: 1000 # 2000 # Visualize after how many iterations
+      save_dir: './training_logs_diffusion_finetune'
+      project_name: 'diffusion_finetune_nova'
+      exp_name: 'diffusion_finetune'
+      log_interval: 5
+      save_interval: 10
+    saving:
+      save_after: 1000 # Save after how many iterations
