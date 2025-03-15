@@ -48,7 +48,7 @@ class UpsrtDataset(Dataset):
         return len(self.dirs)
     
     # @staticmethod
-    def load_image(self, img_path, size=[256, 256]):
+    def load_image(self, img_path, size=[256, 256], mask=None):
         img = cv2.imread(img_path, cv2.IMREAD_COLOR)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         if img.shape[0] != 256 or img.shape[1] != 256:
@@ -59,6 +59,8 @@ class UpsrtDataset(Dataset):
         if self.cfg.data.grayscale_3ch:
             img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
             img = np.stack([img, img, img], axis=-1)
+        if self.cfg.data.white_background:
+            img[mask==0] = 255.0
         return img
     
     def load_metadata(self, metadata_path):
@@ -96,11 +98,14 @@ class UpsrtDataset(Dataset):
         # Select the input views
         self.input_views_idx = np.random.choice(np.arange(25), size=self.n_views, replace=False)
         self.query_view_idx = np.random.choice(np.array(list(set(np.arange(25)) - set(self.input_views_idx))), size=self.n_query_views, replace=False)
-        
         self.input_views = []
         for v in self.input_views_idx:
             img_path = os.path.join(self.protein_path, f"depth_map_with_tip_convolution_256_{v}.png")
-            img = torch.tensor(self.load_image(img_path, self.image_size).astype(np.float32)/255.0) # normalize to [0, 1]
+            if self.cfg.data.white_background:
+                mask = np.load(os.path.join(self.protein_path, f"depth_map_{v}.npz"))["mask_upsampled_256"]
+            else:
+                mask = None 
+            img = torch.tensor(self.load_image(img_path, self.image_size, mask).astype(np.float32)/255.0) # normalize to [0, 1]
             img = torch.permute(img, (2, 0, 1)).contiguous()
             img = img * 2.0 - 1.0  # (3, 256, 256) normalize to [-1, 1]
             self.input_views.append(img)
@@ -111,7 +116,11 @@ class UpsrtDataset(Dataset):
         self.query_views = []
         for v in self.query_view_idx:
             img_path = os.path.join(self.protein_path, f"depth_map_with_tip_convolution_256_{v}.png")
-            img = torch.tensor(self.load_image(img_path, self.image_size).astype(np.float32)/255.0) # normalize to [0, 1]
+            if self.cfg.data.white_background:
+                mask = np.load(os.path.join(self.protein_path, f"depth_map_{v}.npz"))["mask_upsampled_256"]
+            else:
+                mask = None
+            img = torch.tensor(self.load_image(img_path, self.image_size, mask).astype(np.float32)/255.0) # normalize to [0, 1]
             img = torch.permute(img, (2, 0, 1)).contiguous()
             # img = img * 2.0 - 1.0 # (3, 256, 256)
             self.query_views.append(img)

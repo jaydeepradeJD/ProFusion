@@ -162,6 +162,8 @@ def train(args):
                         strategy=DDPStrategy(find_unused_parameters=False, static_graph=True),#'ddp',
                         #plugins=DDPPlugin(find_unused_parameters=False),
                         plugins=[SLURMEnvironment(auto_requeue=False)], # use when running on slurm
+                        #accumulate_grad_batches = 2,
+                        #precision="bf16",
                         callbacks=[checkpoint],
                         logger=[wandb_logger],
                         max_epochs=cfg.upsrt.training.epochs, 
@@ -197,7 +199,8 @@ def update_cfg(cfg, args):
     cfg.data.fixed_views = args.fixed_views
     if cfg.data.fixed_views:
         cfg.data.n_views = 6
-
+    if args.white_background:
+        cfg.data.white_background = True
     if args.return_rays:
         cfg.data.return_rays = True
     if args.identity_K:
@@ -271,7 +274,7 @@ if __name__ == '__main__':
    args.add_argument('--return_rays', action='store_true', help='If True return rays directly instead of camera parameters in Dataloader')
    args.add_argument('--identity_K', action='store_true', help='If True Use Idnetity matrix as K matrix for query rays/cameras')
    args.add_argument('--grayscale_3ch', action='store_true', help='use grayscale with 3ch images')
-    
+   args.add_argument('--white_background', action='store_true', help='use white background')
    args = args.parse_args()
    
    train(args)
