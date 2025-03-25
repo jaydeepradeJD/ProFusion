@@ -257,9 +257,13 @@ class DiffusionPipelineCN(nn.Module):
         # Adding noise
         encoder_posterior = self.handle.encode_first_stage(clean_data)
         x = self.handle.get_first_stage_encoding(encoder_posterior).detach()
+        # t = torch.randint(
+        #     t_start_, t_end_,
+        #     (clean_data.shape[0],), device=self.handle.device
+        # ).long()
         t = torch.randint(
             t_start_, t_end_,
-            (clean_data.shape[0],), device=self.handle.device
+            (1,), device=self.handle.device
         ).long()
         noisy_data = ddim_sampler.stochastic_encode(x, t)
 
@@ -277,7 +281,7 @@ class DiffusionPipelineCN(nn.Module):
         return decoded, alpha_cumprod
 
     def infer(
-        self, srt_cond, batch_size, device, cfg_type,
+        self, srt_cond, batch_size, cfg_type,
         unconditional_guidance_scale, class_idxs=None
     ):
         """
@@ -308,6 +312,6 @@ class DiffusionPipelineCN(nn.Module):
 
         ddim_sampler = DDIMSampler(self.handle)
         shape = (4, *self.cfg.query_feature_size)
-        samples, _ = ddim_sampler.sample(ddim_steps, batch_size, shape, cond, verbose=False, **kwargs)
+        samples, _ = ddim_sampler.sample(ddim_steps, batch_size, shape, cond, verbose=False, disable_tdqm=True, **kwargs)
         infered_out = self.handle.decode_first_stage(samples)
         return infered_out
