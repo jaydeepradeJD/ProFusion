@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 
 from control_net.ldm.modules.diffusionmodules.util import make_ddim_sampling_parameters, make_ddim_timesteps, noise_like, extract_into_tensor
-from pytorch3d.renderer.cameras import PerspectiveCameras
+from pytorch3d.renderer.cameras import PerspectiveCameras, FoVOrthographicCameras
 
 
 class DDIMSampler(object):
@@ -197,11 +197,11 @@ class DDIMSampler(object):
                 assert isinstance(unconditional_conditioning, dict)
                 c_in = dict()
                 for k in c:
-                    if (isinstance(c[k], list)) and (type(c[k][0]) is not PerspectiveCameras):
+                    if (isinstance(c[k], list)) and (type(c[k][0]) is not FoVOrthographicCameras):
                         c_in[k] = [torch.cat([
                             unconditional_conditioning[k][i],
                             c[k][i]]) for i in range(len(c[k]))]
-                    elif (isinstance(c[k], list)) and ((type(c[k][0]) is PerspectiveCameras) or (c[k][0] is None)):
+                    elif (isinstance(c[k], list)) and ((type(c[k][0]) is FoVOrthographicCameras) or (c[k][0] is None)):
                         c_in[k] = unconditional_conditioning[k] + c[k]
                     else:
                         c_in[k] = torch.cat([
@@ -276,11 +276,11 @@ class DDIMSampler(object):
                 x_in = torch.cat([x] * 2)
                 t_in = torch.cat([t] * 2)
                 for k in c:
-                    if (isinstance(c[k], list)) and (type(c[k][0]) is not PerspectiveCameras):
+                    if (isinstance(c[k], list)) and (type(c[k][0]) is not FoVOrthographicCameras):
                         c_in[k] = [torch.cat([
                             unconditional_conditioning[k][i],
                             c[k][i]]) for i in range(len(c[k]))]
-                    elif (isinstance(c[k], list)) and ((type(c[k][0]) is PerspectiveCameras) or (c[k][0] is None)):
+                    elif (isinstance(c[k], list)) and ((type(c[k][0]) is FoVOrthographicCameras) or (c[k][0] is None)):
                         c_in[k] = unconditional_conditioning[k] + c[k]
                     elif (isinstance(c[k], torch.Tensor)):
                         c_in[k] = torch.cat([unconditional_conditioning[k], c[k]], dim=0)
