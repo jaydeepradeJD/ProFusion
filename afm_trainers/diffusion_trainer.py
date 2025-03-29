@@ -108,9 +108,8 @@ class DiffusionTrainer(pl.LightningModule):
 		return loss
 
 	def validation_step(self, batch, batch_idx):
-		loss = self.forward(batch, batch_idx)
 		#save decoded and query_view images
-		if batch_idx == 0:
+		if batch_idx % 100 == 0:
 			loss, decoded, query_view = self.forward(batch, batch_idx)
 			num_imgs_to_show = 10 if self.cfg.diffusion.training.batch_size > 10 else self.cfg.diffusion.training.batch_size
 			decoded = decoded.detach().cpu()[:num_imgs_to_show]
@@ -119,7 +118,8 @@ class DiffusionTrainer(pl.LightningModule):
 			captions = ["GT"] * num_imgs_to_show + ["Pred"] * num_imgs_to_show
 			self.logger.experiment.log(
 				{"samples": [wandb.Image(img, caption=caption) for (img, caption) in zip(grid_images, captions)]})
-		
+		else:
+			loss = self.forward(batch, batch_idx)
 		self.log('val/loss', loss, prog_bar=True)
 		
 		return loss
