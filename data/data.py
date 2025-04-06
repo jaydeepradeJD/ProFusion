@@ -107,7 +107,16 @@ class UpsrtDataset(Dataset):
                 mask = None 
             img = torch.tensor(self.load_image(img_path, self.image_size, mask).astype(np.float32)/255.0) # normalize to [0, 1]
             img = torch.permute(img, (2, 0, 1)).contiguous()
-            img = img * 2.0 - 1.0  # (3, 256, 256) normalize to [-1, 1]
+            
+            if self.cfg.data.use_depth:
+                depth_path = os.path.join(self.protein_path, f"depth_map_{v}.npz")
+                depth = np.load(depth_path)["depth_map_with_tip_convolution_256"] # (256, 256)
+                depth = depth / np.max(depth) # normalize depth to [0, 1] by dividing by max depth 
+                depth = np.expand_dims(depth, axis=0) # (1, 256, 256)
+                # convert to tensor
+                depth = torch.tensor(depth, dtype=torch.float32)
+                img = torch.cat([img, depth], dim=0) # [(3, 256, 256), (1, 256, 256)] --> (4, 256, 256)
+            
             self.input_views.append(img)
         self.input_views = torch.stack(self.input_views, dim=0) # (n_views, 3, 256, 256)
 

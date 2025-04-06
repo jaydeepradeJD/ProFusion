@@ -104,8 +104,11 @@ def train(args):
     else:
         if cfg.data.grayscale:
             feature_extractor = SmallCNN(in_dim=1, out_dim=768)
+        elif cfg.data.use_depth:
+            feature_extractor = SmallCNN(in_dim=4, out_dim=768)
         else:
             feature_extractor = SmallCNN(in_dim=3, out_dim=768)
+        
         print('Using SmallCNN model for feature extraction')
 
     if cfg.upsrt.training.perceptual_loss or cfg.upsrt.training.mixed_loss:
@@ -206,7 +209,8 @@ def update_cfg(cfg, args):
         cfg.data.return_rays = True
     if args.identity_K:
         cfg.data.identity_K = True
-
+    if args.use_depth:
+        cfg.data.use_depth = True
     cfg.upsrt.model.ray.parameterize = args.ray_parameterize
 
     cfg.upsrt.training.use_dino = args.use_dino
@@ -276,6 +280,7 @@ if __name__ == '__main__':
    args.add_argument('--identity_K', action='store_true', help='If True Use Idnetity matrix as K matrix for query rays/cameras')
    args.add_argument('--grayscale_3ch', action='store_true', help='use grayscale with 3ch images')
    args.add_argument('--white_background', action='store_true', help='use white background')
+   args.add_argument('--use_depth', action='store_true', help='use depth values in nm as extra input channel')
    args = args.parse_args()
    
    train(args)
