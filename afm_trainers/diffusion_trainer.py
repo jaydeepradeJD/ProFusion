@@ -43,7 +43,7 @@ class DiffusionTrainer(pl.LightningModule):
 		# return (x - x_min) / (x_max - x_min)
 		return torch.clip((x + 1.0) / 2.0, 0.0, 1.0)
 
-	def forward(self, batch, batch_idx):
+	def forward(self, batch, batch_idx, test=None):
 		# prepare inputs
 		input_views, query_view, R, T = batch
 		query_view = query_view.squeeze(1)
@@ -85,7 +85,7 @@ class DiffusionTrainer(pl.LightningModule):
 
 		loss = self.diffusion_model.forward_with_loss(clean_data=self.normalize(query_view), srt_cond=srt_cond, cfg_seed=123,
 												 enable_cfg=self.cfg.diffusion.training.enable_condition_dropout, condition_dropout=self.cfg.diffusion.training.condition_dropout_frac)
-		if batch_idx % 100 ==0:
+		if batch_idx % 100 ==0 or test is not None:
 			decoded, _ = self.diffusion_model.forward_multi_step_denoise(clean_data=self.normalize(query_view), srt_cond=srt_cond, batch_size=input_views.shape[0], unconditional_guidance_scale=self.cfg.diffusion.model.unconditional_guidance_scale, ddim_steps=30, t_start=1, t_end=29)
 			decoded = self.unnormalize(decoded).clip(0.0, 1.0)
 			return loss, decoded, query_view
@@ -124,6 +124,18 @@ class DiffusionTrainer(pl.LightningModule):
 		
 		return loss
 	
+	def test_step(self, batch, batch_idx):
+		loss, decoded, query_view = self.forward(batch, batch_idx, test=True)
+		num_imgs_to_show = 10 if self.cfg.diffusion.training.batch_size > 10 else self.cfg.diffusion.training.batch_size
+		decoded = decoded.detach().cpu()[:num_imgs_to_show]
+		query_view = query_view.detach().cpu()[:num_imgs_to_show]
+		grid_images = torch.cat([query_view, decoded], dim=0)
+		captions = ["GT"] * num_imgs_to_show + ["Pred"] * num_imgs_to_show
+		self.logger.experiment.log(
+			{"samples": [wandb.Image(img, caption=caption) for (img, caption) in zip(grid_images, captions)]})
+		self.log('test/loss', loss, prog_bar=True)
+		return loss
+
 	def configure_optimizers(self):
 		lr = self.cfg.diffusion.training.lr
 		weight_decay = self.cfg.diffusion.training.weight_decay #self.cfg.TRAIN.L2_PENALTY

@@ -172,6 +172,8 @@ def update_cfg(cfg, args):
         cfg.data.return_rays = True
     if args.identity_K:
         cfg.data.identity_K = True
+    if args.use_depth:
+        cfg.data.use_depth = True
     # Upsrt related
     cfg.upsrt.model.ray.parameterize = args.ray_parameterize
     cfg.upsrt.training.use_dino = args.use_dino
@@ -191,6 +193,8 @@ def update_cfg(cfg, args):
     cfg.diffusion.training.batch_size = args.batch_size
     cfg.diffusion.training.lr = args.lr
     cfg.diffusion.training.weight_decay = args.weight_decay
+    if args.pretrained_upsrt_ckpt_path is not None:
+        cfg.diffusion.training.pretrained_upsrt_ckpt_path = args.pretrained_upsrt_ckpt_path
     if args.use_pretrained_diffusion:
         cfg.diffusion.training.use_pretrained_diffusion = True
     if args.use_pretrained_upfusion:
@@ -246,6 +250,8 @@ if __name__ == '__main__':
    args.add_argument('--identity_K', action='store_true', help='If True Use Idnetity matrix as K matrix for query rays/cameras')
    args.add_argument('--grayscale_3ch', action='store_true', help='use grayscale with 3ch images')
    args.add_argument('--white_background', action='store_true', help='use white background')
+   args.add_argument('--pretrained_upsrt_ckpt_path', type=str, default=None, help='Path to pretrained upsrt ckpt')
+   args.add_argument('--use_depth', action='store_true', help='use depth values in nm as extra input channel')
    args = args.parse_args()
    
    train(args)
