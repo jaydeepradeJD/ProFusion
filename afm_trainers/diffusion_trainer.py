@@ -71,7 +71,23 @@ class DiffusionTrainer(pl.LightningModule):
 				image_features_ = self.feature_extractor(self.preprocess(reshaped))[-1]
 				image_features = rearrange(image_features_, "(b n) c h w -> b n (h w) c", n=N) # (b, n, 256, 768)
 		else:
-			image_features = self.feature_extractor(self.preprocess(input_views))
+			if self.cfg.data.use_depth:
+				input_views_tmp = input_views[:, :, :3, :, :] # (b, n, 3, 256, 256)
+				depth_map = input_views[:, :, 3, :, :].unsqueeze(2) # (b, n, 1, 256, 256)
+				input_views_tmp = self.preprocess(input_views_tmp)
+				input_views = torch.cat([input_views_tmp, depth_map], dim=2) # (b, n, 4, 256, 256)
+				if self.cfg.upsrt.training.freeze_feature_extractor:
+					with torch.no_grad():
+						image_features = self.feature_extractor(input_views)
+				else:
+					image_features = self.feature_extractor(input_views)
+			
+			else:
+				if self.cfg.upsrt.training.freeze_feature_extractor:
+					with torch.no_grad():
+						image_features = self.feature_extractor(self.preprocess(input_views))
+				else:
+					image_features = self.feature_extractor(self.preprocess(input_views))
 		###################
 		with torch.no_grad():	
 			query_features, plucker_encoding, slt = self.UpSRT.get_query_features(

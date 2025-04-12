@@ -65,8 +65,16 @@ def train(args):
     else:
         if cfg.data.grayscale:
             feature_extractor = SmallCNN(in_dim=1, out_dim=768)
+        elif cfg.data.use_depth:
+            feature_extractor = SmallCNN(in_dim=4, out_dim=768)
         else:
             feature_extractor = SmallCNN(in_dim=3, out_dim=768)
+
+        if cfg.upsrt.training.freeze_feature_extractor:
+            feature_extractor.eval()
+            for param in feature_extractor.parameters():
+                param.requires_grad = False
+            print('Set feature extractor as non-trainable')
         print('Using SmallCNN model for feature extraction')
 
     # load checkpoint for UpSRT model
@@ -101,9 +109,14 @@ def train(args):
         diffusion_pipeline.handle.load_state_dict(diffusion_load_dict['model_state_dict'])
         print('Loaded pretrained UpFusion weights for diffusion model')
     if cfg.diffusion.training.use_pretrained_diffusion:    
-        sdv15_ini_weights = torch.load(cfg.diffusion.training.pretrained_sd15_ckpt_path, map_location="cpu")
-        diffusion_pipeline.handle.load_state_dict(sdv15_ini_weights)
-        print('Loaded pretrained SDv1.5 weights for diffusion model')
+        if cfg.diffusion.training.use_sd15:
+            sdv15_ini_weights = torch.load(cfg.diffusion.training.pretrained_diffusion_ckpt_path, map_location="cpu")
+            diffusion_pipeline.handle.load_state_dict(sdv15_ini_weights)
+            print('Loaded pretrained SDv1.5 weights for diffusion model')
+        if cfg.diffusion.training.use_sd21:
+            sd21_ini_weights = torch.load(cfg.diffusion.training.pretrained_diffusion_ckpt_path, map_location="cpu")
+            diffusion_pipeline.handle.load_state_dict(sd21_ini_weights)
+            print('Loaded pretrained SDv2.1 weights for diffusion model')
     
     models = {'feature_extractor': feature_extractor, 'UpSRT': srt_model, 'diffusion_model': diffusion_pipeline}
     
@@ -197,6 +210,12 @@ def update_cfg(cfg, args):
         cfg.diffusion.training.pretrained_upsrt_ckpt_path = args.pretrained_upsrt_ckpt_path
     if args.use_pretrained_diffusion:
         cfg.diffusion.training.use_pretrained_diffusion = True
+    if args.use_sd15:
+        cfg.diffusion.training.pretrained_diffusion_ckpt_path = './weights/control_sd15_ini.ckpt'
+        cfg.diffusion.model.control_net_model_config_path = './control_net/models/cldm_v15_dfslt.yaml'
+    if args.use_sd21:
+        cfg.diffusion.training.pretrained_diffusion_ckpt_path = './weights/control_sd21_ini.ckpt'
+        cfg.diffusion.model.control_net_model_config_path = './control_net/models/cldm_v21_dfslt.yaml'
     if args.use_pretrained_upfusion:
         cfg.diffusion.training.use_pretrained_upfusion = True
     if args.project_name:
@@ -244,7 +263,9 @@ if __name__ == '__main__':
    args.add_argument('--use_diffusion', action='store_true', help='Use diffusion model for predecting novel views')
    args.add_argument('--return_rays', action='store_true', help='If True return rays directly instead of camera parameters in Dataloader')
    args.add_argument('--debug_run', action='store_true', help='Pytorch Lightning debug run for testing')
-   args.add_argument('--use_pretrained_diffusion', action='store_true', help='Initialize diffusion model with  pretrained SDv1.5 weights')
+   args.add_argument('--use_pretrained_diffusion', action='store_true', help='Initialize diffusion model with pretrained stable diffusion weights, by default use SDv1.5')
+   args.add_argument('--use_sd15', action='store_true', help='Initialize diffusion model with  pretrained stable diffusion v1.5 weights')
+   args.add_argument('--use_sd21', action='store_true', help='Initialize diffusion model with  pretrained stable diffusion v2.1 weights')
    args.add_argument('--use_pretrained_upfusion', action='store_true', help='Initialize diffusion model with  pretrained UpFusion weights')
    args.add_argument('--sd_locked', action='store_true', help='Lock the training of SD decoder blocks')
    args.add_argument('--identity_K', action='store_true', help='If True Use Idnetity matrix as K matrix for query rays/cameras')
