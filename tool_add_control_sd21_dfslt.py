@@ -3,8 +3,8 @@ import os
 
 # assert len(sys.argv) == 3, 'Args are wrong.'
 
-input_path = '/work/hdd/bcyr/jd23697/ProFusion/weights/88ecb782561455673c4b78d05093494b9c539fc6bfc08f3a9a4a0dd7b0b10f36'#sys.argv[1]
-output_path = '/work/hdd/bcyr/jd23697/ProFusion/weights/control_sd21_ini.ckpt' #sys.argv[2]
+input_path = './weights/88ecb782561455673c4b78d05093494b9c539fc6bfc08f3a9a4a0dd7b0b10f36'#sys.argv[1]
+output_path = './weights/control_sd21_ini.ckpt' #sys.argv[2]
 
 assert os.path.exists(input_path), 'Input model does not exist.'
 assert not os.path.exists(output_path), 'Output filename already exists.'
