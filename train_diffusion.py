@@ -211,9 +211,13 @@ def update_cfg(cfg, args):
     if args.use_pretrained_diffusion:
         cfg.diffusion.training.use_pretrained_diffusion = True
     if args.use_sd15:
+        cfg.diffusion.training.use_sd15 = True
+        cfg.diffusion.training.use_sd21 = False
         cfg.diffusion.training.pretrained_diffusion_ckpt_path = './weights/control_sd15_ini.ckpt'
         cfg.diffusion.model.control_net_model_config_path = './control_net/models/cldm_v15_dfslt.yaml'
     if args.use_sd21:
+        cfg.diffusion.training.use_sd21 = True
+        cfg.diffusion.training.use_sd15 = False
         cfg.diffusion.training.pretrained_diffusion_ckpt_path = './weights/control_sd21_ini.ckpt'
         cfg.diffusion.model.control_net_model_config_path = './control_net/models/cldm_v21_dfslt.yaml'
     if args.use_pretrained_upfusion:
