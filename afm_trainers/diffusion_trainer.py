@@ -42,7 +42,15 @@ class DiffusionTrainer(pl.LightningModule):
 		# x_max = torch.max(x)
 		# return (x - x_min) / (x_max - x_min)
 		return torch.clip((x + 1.0) / 2.0, 0.0, 1.0)
-
+	
+	def preprocess(self, x):
+		"""
+		Args:
+			x   :   torch.Tensor with shape [B, C, H, W] and values in the range [-1, 1]
+		"""
+		unnorm_img = x * 0.5 + 0.5 # unnorm is in the range [0, 1]
+		return unnorm_img
+	
 	def forward(self, batch, batch_idx, test=None):
 		# prepare inputs
 		input_views, query_view, R, T = batch

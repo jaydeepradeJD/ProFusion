@@ -101,7 +101,7 @@ def train(args):
     # Load diffuision model 
     diffusion_pipeline = DiffusionPipelineCN(
         cfg.diffusion.model, srt_model=srt_model,
-        dino_model=dino_model
+        dino_model=feature_extractor
     )
     print('Loaded Diffusion model')
     if cfg.diffusion.training.use_pretrained_upfusion:
