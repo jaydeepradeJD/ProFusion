@@ -80,7 +80,14 @@ def update_cfg(cfg, args):
         cfg.data.grayscale = True
         cfg.unet.model.in_channels = 1
         cfg.unet.model.out_channels = 1
-
+    if args.grayscale_3ch:
+        cfg.data.grayscale_3ch = True
+        cfg.unet.model.in_channels = 3
+        cfg.unet.model.out_channels = 3
+    if args.use_depth:
+        cfg.data.use_depth = True
+        cfg.unet.model.in_channels = 4
+        cfg.unet.model.out_channels = 4
     cfg.unet.training.num_workers = args.num_workers
     cfg.unet.training.epochs = args.epochs
     cfg.unet.training.num_nodes = args.num_nodes
@@ -111,6 +118,8 @@ if __name__ == '__main__':
    args.add_argument('--exp_name', type=str, default='upsrt_unet', help='experiment name for logging')
    args.add_argument('--grayscale', action='store_true', help='use grayscale images')
    args.add_argument('--debug_run', action='store_true', help='Debug run to test the code')
+   args.add_argument('--grayscale_3ch', action='store_true', help='use grayscale with 3ch images')
+   args.add_argument('--use_depth', action='store_true', help='use depth values in nm as extra input channel')
    
    args = args.parse_args()
    

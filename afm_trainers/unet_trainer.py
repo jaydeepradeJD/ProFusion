@@ -38,17 +38,44 @@ class UNetTrainer(pl.LightningModule):
 		pred, gt = self.forward(batch)
 		loss = self.loss_fn(pred, gt)
 		self.log('train/loss', loss, prog_bar=True)
+		if self.cfg.data.use_depth:
+			pred = pred[:, :, :3, :, :]
+			gt = gt[:, :, :3, :, :]
+			depth_pred = pred[:, :, 3, :, :]
+			depth_gt = gt[:, :, 3, :, :]
+		if batch_idx % 100 == 0:
+			num_imgs_to_show = 10
+			pred = pred.detach().cpu()[:num_imgs_to_show]
+			gt = gt.detach().cpu()[:num_imgs_to_show]
+			if self.cfg.data.use_depth:
+				grid_images = torch.cat([gt, pred, depth_gt, depth_pred], dim=0) # shape (4*batch_size, 3, 256, 256)
+				captions = ["GT"] * num_imgs_to_show + ["Pred"] * num_imgs_to_show + ["GT Depth"] * num_imgs_to_show + ["Pred Depth"] * num_imgs_to_show
+			else:
+				grid_images = torch.cat([gt, pred], dim=0) # shape (2*batch_size, 3, 256, 256)
+				captions = ["GT"] * num_imgs_to_show + ["Pred"] * num_imgs_to_show
+			self.logger.experiment.log(
+				{"train/samples": [wandb.Image(img, caption=caption) for (img, caption) in zip(grid_images, captions)]})
+		
 		return loss
 
 	def validation_step(self, batch, batch_idx):
 		pred, gt = self.forward(batch)
 		loss = self.loss_fn(pred, gt)
-		if batch_idx == 0:
+		if self.cfg.data.use_depth:
+			pred = pred[:, :, :3, :, :]
+			gt = gt[:, :, :3, :, :]
+			depth_pred = pred[:, :, 3, :, :]
+			depth_gt = gt[:, :, 3, :, :]
+		if batch_idx % 100 == 0:
 			num_imgs_to_show = 10
 			pred = pred.detach().cpu()[:num_imgs_to_show]
 			gt = gt.detach().cpu()[:num_imgs_to_show]
-			grid_images = torch.cat([gt, pred], dim=0) # shape (2*batch_size, 3, 256, 256)
-			captions = ["GT"] * num_imgs_to_show + ["Pred"] * num_imgs_to_show
+			if self.cfg.data.use_depth:
+				grid_images = torch.cat([gt, pred, depth_gt, depth_pred], dim=0) # shape (4*batch_size, 3, 256, 256)
+				captions = ["GT"] * num_imgs_to_show + ["Pred"] * num_imgs_to_show + ["GT Depth"] * num_imgs_to_show + ["Pred Depth"] * num_imgs_to_show
+			else:
+				grid_images = torch.cat([gt, pred], dim=0) # shape (2*batch_size, 3, 256, 256)
+				captions = ["GT"] * num_imgs_to_show + ["Pred"] * num_imgs_to_show
 			self.logger.experiment.log(
 				{"samples": [wandb.Image(img, caption=caption) for (img, caption) in zip(grid_images, captions)]})
 
