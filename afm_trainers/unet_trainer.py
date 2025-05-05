@@ -24,6 +24,10 @@ class UNetTrainer(pl.LightningModule):
 		self.optimizer = optimizer
 		self.scheduler = Scheduler
 		self.loss_fn = torch.nn.MSELoss() #loss_fn
+		if cfg.data.use_depth:
+			self.depth_loss_fn = torch.nn.MSELoss()
+			if cfg.data.use_raw_depth:
+				self.depth_loss_fn = torch.nn.L1Loss()
 		# self.loss_fn = torch.nn.L1Loss()
 		
 		self.save_hyperparameters()
@@ -36,8 +40,21 @@ class UNetTrainer(pl.LightningModule):
 	
 	def training_step(self, batch, batch_idx):  
 		preds, gts = self.forward(batch)
-		loss = self.loss_fn(preds, gts)
-		self.log('train/loss', loss, prog_bar=True)
+		# loss = self.loss_fn(preds, gts)
+		if self.cfg.data.use_depth:
+			depth_pred = preds[:, 3, :, :].unsqueeze(1) # shape (batch_size, 1, 256, 256)
+			depth_gt = gts[:, 3, :, :].unsqueeze(1) # shape (batch_size, 1, 256, 256)
+			depth_loss = self.depth_loss_fn(depth_pred, depth_gt)
+			image_loss = self.loss_fn(preds[:, :3, :, :], gts[:, :3, :, :])
+			loss = image_loss + depth_loss
+		else:
+			loss = self.loss_fn(preds, gts)
+		losses = {'train/loss': loss}
+		if self.cfg.data.use_depth:
+			losses['train/depth_loss'] = depth_loss
+			losses['train/image_loss'] = image_loss
+		self.log_dict(losses, prog_bar=True)
+		
 		if self.cfg.data.use_depth:
 			pred = preds[:, :3, :, :] # shape (batch_size, 3, 256, 256)
 			gt = gts[:, :3, :, :] # shape (batch_size, 3, 256, 256)
@@ -69,8 +86,22 @@ class UNetTrainer(pl.LightningModule):
 
 	def validation_step(self, batch, batch_idx):
 		preds, gts = self.forward(batch)
-		loss = self.loss_fn(preds, gts)
-		if self.cfg.data.use_depth:	
+		# loss = self.loss_fn(preds, gts)
+		if self.cfg.data.use_depth:
+			depth_pred = preds[:, 3, :, :].unsqueeze(1) # shape (batch_size, 1, 256, 256)
+			depth_gt = gts[:, 3, :, :].unsqueeze(1) # shape (batch_size, 1, 256, 256)
+			depth_loss = self.depth_loss_fn(depth_pred, depth_gt)
+			image_loss = self.loss_fn(preds[:, :3, :, :], gts[:, :3, :, :])
+			loss = image_loss + depth_loss
+		else:
+			loss = self.loss_fn(preds, gts)
+		losses = {'val/loss': loss}
+		if self.cfg.data.use_depth:
+			losses['val/depth_loss'] = depth_loss
+			losses['val/image_loss'] = image_loss
+		self.log_dict(losses, prog_bar=True)
+		
+		if self.cfg.data.use_depth:
 			pred = preds[:, :3, :, :] # shape (batch_size, 3, 256, 256)
 			gt = gts[:, :3, :, :] # shape (batch_size, 3, 256, 256)
 			depth_pred = preds[:, 3, :, :].unsqueeze(1) # shape (batch_size, 1, 256, 256)
@@ -78,7 +109,7 @@ class UNetTrainer(pl.LightningModule):
 		else:
 			pred = preds
 			gt = gts
-		if batch_idx % 100 == 0:
+		if batch_idx == 0:
 			num_imgs_to_show = 10
 			pred = pred.detach().cpu()[:num_imgs_to_show]
 			gt = gt.detach().cpu()[:num_imgs_to_show]

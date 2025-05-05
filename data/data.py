@@ -198,7 +198,8 @@ class AutoEncoderDataset(Dataset):
         if self.cfg.data.use_depth:
             depth_path = os.path.join(self.protein_path, f"depth_map_{view_idx[0]}.npz")
             depth = np.load(depth_path)["depth_map_with_tip_convolution_256"] # (256, 256)
-            depth = depth / np.max(depth) # normalize depth to [0, 1] by dividing by max depth 
+            if not self.cfg.data.use_raw_depth:
+                depth = depth / np.max(depth) # normalize depth to [0, 1] by dividing by max depth 
             depth = np.expand_dims(depth, axis=0) # (1, 256, 256)
             # convert to tensor
             depth = torch.tensor(depth, dtype=torch.float32)

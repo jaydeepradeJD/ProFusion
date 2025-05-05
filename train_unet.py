@@ -49,14 +49,15 @@ def train(args):
                                 mode='min', 
                                 save_top_k=1,
                                 save_last=True)
-
+    plugins = [SLURMEnvironment(auto_requeue=False)]
     trainer = pl.Trainer(devices=cfg.unet.training.gpus, 
                         num_nodes=cfg.unet.training.num_nodes,
                         accelerator='gpu', 
                         # strategy=FSDPStrategy(),#'ddp',
                         strategy=DDPStrategy(find_unused_parameters=False, static_graph=True),#'ddp',
                         # plugins=DDPPlugin(find_unused_parameters=False),
-                        plugins=[SLURMEnvironment(auto_requeue=False)], # use when running on slurm
+                        plugins=plugins,
+                        precision='bf16-mixed' if cfg.unet.training.use_mixed_precision else '32-true',
                         callbacks=[checkpoint],
                         logger=[wandb_logger], 
                         max_epochs=cfg.unet.training.epochs, 
@@ -88,6 +89,8 @@ def update_cfg(cfg, args):
         cfg.data.use_depth = True
         cfg.unet.model.in_channels = 4
         cfg.unet.model.out_channels = 4
+    if args.use_raw_depth:
+        cfg.data.use_raw_depth = True
     cfg.unet.training.num_workers = args.num_workers
     cfg.unet.training.epochs = args.epochs
     cfg.unet.training.num_nodes = args.num_nodes
@@ -95,7 +98,7 @@ def update_cfg(cfg, args):
     cfg.unet.training.batch_size = args.batch_size
     cfg.unet.training.lr = args.lr
     cfg.unet.training.weight_decay = args.weight_decay
-
+    cfg.unet.training.use_mixed_precision = args.use_mixed_precision
     if args.project_name:
         cfg.unet.training.logging.project_name = args.project_name
     if args.exp_name:
@@ -120,7 +123,8 @@ if __name__ == '__main__':
    args.add_argument('--debug_run', action='store_true', help='Debug run to test the code')
    args.add_argument('--grayscale_3ch', action='store_true', help='use grayscale with 3ch images')
    args.add_argument('--use_depth', action='store_true', help='use depth values in nm as extra input channel')
-   
+   args.add_argument('--use_raw_depth', action='store_true', help='use raw depth values in nm as extra input channel')
+   args.add_argument('--use_mixed_precision', action='store_true', help='use mixed precision float 16 training')
    args = args.parse_args()
    
    train(args)

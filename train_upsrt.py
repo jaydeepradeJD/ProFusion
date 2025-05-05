@@ -91,6 +91,8 @@ def train(args):
     elif cfg.upsrt.training.pretrained_feature_extractor:
         if cfg.data.grayscale:
             unet = UNetTrainer.load_from_checkpoint(cfg.upsrt.training.fe_grayscale_weights_dir, cfg=cfg)
+        elif cfg.data.grayscale_3ch:
+            unet = UNetTrainer.load_from_checkpoint(cfg.upsrt.training.fe_grayscale_3ch_weights_dir, cfg=cfg)
         else:
             unet = UNetTrainer.load_from_checkpoint(cfg.upsrt.training.fe_weights_dir, cfg=cfg)
 
@@ -167,7 +169,7 @@ def train(args):
                         #plugins=DDPPlugin(find_unused_parameters=False),
                         plugins=[SLURMEnvironment(auto_requeue=False)], # use when running on slurm
                         #accumulate_grad_batches = 2,
-                        #precision="bf16",
+                        precision='bf16-mixed' if cfg.upsrt.training.use_mixed_precision else '32-true',
                         callbacks=[checkpoint],
                         logger=[wandb_logger],
                         max_epochs=cfg.upsrt.training.epochs, 
@@ -216,6 +218,13 @@ def update_cfg(cfg, args):
     cfg.upsrt.training.use_dino = args.use_dino
     cfg.upsrt.training.pretrained_upsrt = args.pretrained_upsrt
     cfg.upsrt.training.pretrained_feature_extractor = args.pretrained_feature_extractor
+    if args.pretrained_feature_extractor:
+        if args.grayscale_3ch:
+            cfg.unet.model.in_channels = 3
+            cfg.unet.model.out_channels = 3
+        if args.use_depth:
+            cfg.unet.model.in_channels = 4
+            cfg.unet.model.out_channels = 4
     cfg.upsrt.training.freeze_feature_extractor = args.freeze_feature_extractor
     cfg.upsrt.training.freeze_upsrt_encoder = args.freeze_upsrt_encoder
     cfg.upsrt.training.num_workers = args.num_workers
@@ -229,6 +238,7 @@ def update_cfg(cfg, args):
     cfg.upsrt.training.perceptual_loss = args.perceptual_loss
     cfg.upsrt.training.mixed_loss = args.mixed_loss
     cfg.upsrt.training.bce_loss = args.bce_loss
+    cfg.upsrt.training.use_mixed_precision = args.use_mixed_precision
     if cfg.data.grayscale:
         cfg.upsrt.model.ray_decoder.grayscale = args.grayscale
     if args.project_name:
@@ -281,6 +291,8 @@ if __name__ == '__main__':
    args.add_argument('--grayscale_3ch', action='store_true', help='use grayscale with 3ch images')
    args.add_argument('--white_background', action='store_true', help='use white background')
    args.add_argument('--use_depth', action='store_true', help='use depth values in nm as extra input channel')
+   args.add_argument('--use_mixed_precision', action='store_true', help='use mixed precision float 16 training')
+   
    args = args.parse_args()
    
    train(args)
