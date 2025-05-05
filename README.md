@@ -1,21 +1,29 @@
-# UpFusion: Novel View Diffusion from Unposed Sparse View Observations
-
-### [Project Page](https://upfusion3d.github.io/) | [ArXiv](https://arxiv.org/abs/2312.06661)
-
-### ECCV 2024
-
-[Bharath Raj Nagoor Kani](https://bharathrajn.com/)<sup>1</sup>, [Hsin-Ying Lee](http://hsinyinglee.com/)<sup>2</sup>, [Sergey Tulyakov](http://www.stulyakov.com/)<sup>2</sup>, [Shubham Tulsiani](https://shubhtuls.github.io/)<sup>1</sup> <br/>
-<sup>1</sup>Carnegie Mellon University, <sup>2</sup>Snap Research
+# AI-AFM Assisted Structure Prediction of Protein Complexes
 
 <p align="center">
+<img src="github_images/architecture.png" alt="Overview" width="500"/>
+</p>
+
+## Final Code, Data and Paper
+
+Coming soon!
+
+<!-- ### [Project Page](https://upfusion3d.github.io/) | [ArXiv](https://arxiv.org/abs/2312.06661) -->
+
+<!-- ### ECCV 2024 -->
+
+<!-- [Bharath Raj Nagoor Kani](https://bharathrajn.com/)<sup>1</sup>, [Hsin-Ying Lee](http://hsinyinglee.com/)<sup>2</sup>, [Sergey Tulyakov](http://www.stulyakov.com/)<sup>2</sup>, [Shubham Tulsiani](https://shubhtuls.github.io/)<sup>1</sup> <br/>
+<sup>1</sup>Carnegie Mellon University, <sup>2</sup>Snap Research -->
+
+<!-- <p align="center">
   <img src="media/teaser_gif.gif" alt="teaser_gif" />
 </p>
 
-<p align="center"> <b>UpFusion</b> can create a 3D asset of an object from <b>unposed</b> sparse-view images. </p>
+<p align="center"> <b>UpFusion</b> can create a 3D asset of an object from <b>unposed</b> sparse-view images. </p> -->
 
 ---
 
-## Release Overview
+<!-- ## Release Overview
 
 As of 11th December 2023, our current release contains links to model weights and inference code that can create 3D representations of objects from 1-6 sparse-view images. We aim to release the training code as well in the near future.
 
@@ -123,4 +131,4 @@ If you find this work useful, please consider citing UpFusion as:
 }
 ```
 
---- 
+---  -->
