@@ -3,7 +3,7 @@ import cv2
 import torch
 import pytorch_lightning as pl
 from torchvision.utils import make_grid
-
+import torchvision
 from upsrt.model.model import UpSRT
 from dino.model.model import DINOv2KeyExtractor
 
@@ -15,7 +15,7 @@ from einops import rearrange
 import wandb
 
 class DiffusionTrainer(pl.LightningModule):
-	def __init__(self, cfg, models, optimizer=None, loss_fn=None, Scheduler=None):
+	def __init__(self, cfg, models, optimizer=None, loss_fn=None, Scheduler=None, save_dir=None):
 		super(DiffusionTrainer, self).__init__()
 		self.cfg = cfg
 		self.models = models
@@ -25,7 +25,7 @@ class DiffusionTrainer(pl.LightningModule):
 		self.optimizer = optimizer
 		self.scheduler = Scheduler
 		self.loss_fn = torch.nn.MSELoss()
-
+		self.save_dir = save_dir
 	def normalize(self, x):
 		'''
 		Normalize [0, 1] to [-1, 1]
@@ -51,7 +51,7 @@ class DiffusionTrainer(pl.LightningModule):
 		unnorm_img = x * 0.5 + 0.5 # unnorm is in the range [0, 1]
 		return unnorm_img
 	
-	def forward(self, batch, batch_idx, test=None):
+	def forward(self, batch, batch_idx, test=None, predict=False):
 		# prepare inputs
 		input_views, query_view, R, T = batch
 		query_view = query_view.squeeze(1)
@@ -113,6 +113,11 @@ class DiffusionTrainer(pl.LightningModule):
 			decoded, _ = self.diffusion_model.forward_multi_step_denoise(clean_data=self.normalize(query_view), srt_cond=srt_cond, batch_size=input_views.shape[0], unconditional_guidance_scale=self.cfg.diffusion.model.unconditional_guidance_scale, ddim_steps=30, t_start=1, t_end=29)
 			decoded = self.unnormalize(decoded).clip(0.0, 1.0)
 			return loss, decoded, query_view
+		elif predict:
+			# decoded, _ = self.diffusion_model.forward_multi_step_denoise(clean_data=self.normalize(query_view), srt_cond=srt_cond, batch_size=input_views.shape[0], unconditional_guidance_scale=self.cfg.diffusion.model.unconditional_guidance_scale, ddim_steps=30, t_start=1, t_end=29)
+			decoded = self.diffusion_model.infer(srt_cond=srt_cond, batch_size=input_views.shape[0], cfg_type='F1', unconditional_guidance_scale=self.cfg.diffusion.model.unconditional_guidance_scale)
+			decoded = self.unnormalize(decoded).clip(0.0, 1.0)
+			return loss, decoded, query_view
 		else:
 			return loss
 		
@@ -159,6 +164,19 @@ class DiffusionTrainer(pl.LightningModule):
 			{"samples": [wandb.Image(img, caption=caption) for (img, caption) in zip(grid_images, captions)]})
 		self.log('test/loss', loss, prog_bar=True)
 		return loss
+	
+	def predict_step(self, batch, batch_idx):
+		if self.save_dir is None:
+			print('$$$$$$$$$$$$\n$$$$$$$$$$$\n$$$$$$$$$$$$$$$$$')
+			self.save_dir = self.cfg.diffusion.training.logging.save_dir+'/'+self.cfg.diffusion.training.logging.exp_name
+		loss, decoded, query_view = self.forward(batch, batch_idx, predict=True)
+		decoded = decoded.detach().cpu().numpy().transpose(0, 2, 3, 1)
+		query_view = query_view.detach().cpu().numpy().transpose(0, 2, 3, 1)
+		decoded = np.clip(decoded[0] * 255, 0, 255).astype(np.uint8)
+		query_view = np.clip(query_view[0] * 255, 0, 255).astype(np.uint8)
+		cv2.imwrite(self.save_dir+'/'+'%04d_pred.png'%(batch_idx), decoded)
+		cv2.imwrite(self.save_dir+'/'+'%04d_gt.png'%(batch_idx), query_view)
+		return decoded
 
 	def configure_optimizers(self):
 		lr = self.cfg.diffusion.training.lr

@@ -51,9 +51,11 @@ def train(args):
     
     elif cfg.upsrt.training.pretrained_feature_extractor:
         if cfg.data.grayscale:
-            unet = UNetTrainer.load_from_checkpoint(args.fe_grayscale_weights_dir, cfg=cfg)
+            unet = UNetTrainer.load_from_checkpoint(cfg.upsrt.training.fe_grayscale_weights_dir, cfg=cfg)
+        elif cfg.data.grayscale_3ch:
+            unet = UNetTrainer.load_from_checkpoint(cfg.upsrt.training.fe_grayscale_3ch_weights_dir, cfg=cfg)
         else:
-            unet = UNetTrainer.load_from_checkpoint(args.fe_weights_dir, cfg=cfg)
+            unet = UNetTrainer.load_from_checkpoint(cfg.upsrt.training.fe_weights_dir, cfg=cfg)
 
         if cfg.upsrt.training.freeze_feature_extractor:    
             # unet.eval()
@@ -133,6 +135,7 @@ def train(args):
        
     checkpoint = ModelCheckpoint(monitor=monitor_val,
                                 dirpath=cfg.diffusion.training.logging.save_dir+'/'+cfg.diffusion.training.logging.exp_name, 
+                                save_top_k=5,
                                 filename='{epoch}-{step}',
                                 mode='min', 
                                 save_last=True)
@@ -143,6 +146,7 @@ def train(args):
                         strategy=DDPStrategy(find_unused_parameters=False, static_graph=True),#'ddp',
                         #plugins=DDPPlugin(find_unused_parameters=False),
                         # plugins=[SLURMEnvironment(auto_requeue=False)], # need to comment this if not using slurm
+                        precision='bf16-mixed' if cfg.diffusion.training.use_mixed_precision else '32-true',
                         callbacks=[checkpoint],
                         logger=[wandb_logger],
                         max_epochs=cfg.diffusion.training.epochs, 
@@ -187,6 +191,15 @@ def update_cfg(cfg, args):
         cfg.data.identity_K = True
     if args.use_depth:
         cfg.data.use_depth = True
+    # Unet related
+    if args.pretrained_feature_extractor:
+        if args.grayscale_3ch:
+            cfg.unet.model.in_channels = 3
+            cfg.unet.model.out_channels = 3
+        if args.use_depth:
+            cfg.unet.model.in_channels = 4
+            cfg.unet.model.out_channels = 4
+    
     # Upsrt related
     cfg.upsrt.model.ray.parameterize = args.ray_parameterize
     cfg.upsrt.training.use_dino = args.use_dino
@@ -231,6 +244,13 @@ def update_cfg(cfg, args):
     
     if args.sd_locked:
         cfg.diffusion.model.control_net_sd_locked = True
+        
+    if args.use_mixed_precision:
+        cfg.diffusion.training.use_mixed_precision = True
+    if args.condition_dropout_frac:
+        cfg.diffusion.training.condition_dropout_frac = args.condition_dropout_frac
+    if args.unconditional_guidance_scale:
+        cfg.diffusion.model.unconditional_guidance_scale = args.unconditional_guidance_scale
     # If using U-Net for feature extraction with grayscale images
     if args.grayscale:
         cfg.data.grayscale = True
@@ -272,11 +292,14 @@ if __name__ == '__main__':
    args.add_argument('--use_sd21', action='store_true', help='Initialize diffusion model with  pretrained stable diffusion v2.1 weights')
    args.add_argument('--use_pretrained_upfusion', action='store_true', help='Initialize diffusion model with  pretrained UpFusion weights')
    args.add_argument('--sd_locked', action='store_true', help='Lock the training of SD decoder blocks')
+   args.add_argument('--condition_dropout_frac', type=float, default=0.05, help='Fraction of condition dropout')
+   args.add_argument('--unconditional_guidance_scale', type=float, default=9.0, help='Unconditional guidance scale')
    args.add_argument('--identity_K', action='store_true', help='If True Use Idnetity matrix as K matrix for query rays/cameras')
    args.add_argument('--grayscale_3ch', action='store_true', help='use grayscale with 3ch images')
    args.add_argument('--white_background', action='store_true', help='use white background')
    args.add_argument('--pretrained_upsrt_ckpt_path', type=str, default=None, help='Path to pretrained upsrt ckpt')
    args.add_argument('--use_depth', action='store_true', help='use depth values in nm as extra input channel')
+   args.add_argument('--use_mixed_precision', action='store_true', help='use mixed precision float 16 training')
    args = args.parse_args()
    
    train(args)
